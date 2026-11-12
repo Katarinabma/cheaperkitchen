@@ -345,6 +345,11 @@ nav button.on svg{opacity:1}
 .lk-pad button.alt{background:none;font-size:14px}
 .lk-cancel{margin-top:18px;border:0;background:none;color:#fff;font-size:14px;text-decoration:underline;cursor:pointer}
 
+.lk-name{width:100%;height:46px;border:0;border-radius:14px;padding:0 16px;font:500 16px var(--fb);text-align:center;margin:-8px 0 20px;background:rgba(255,255,255,.95);color:var(--ink);outline:none}
+.lk-name[hidden]{display:none}
+.fld{display:block;margin-top:12px;font-size:13px;font-weight:600;color:var(--muted)}
+.fld input{display:block;width:100%;margin-top:6px;height:44px;border:1px solid var(--line);border-radius:12px;padding:0 14px;font:500 15px var(--fb);color:var(--ink);background:#fff}
+
 </style>
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#14a58a">
@@ -432,6 +437,7 @@ nav button.on svg{opacity:1}
       <div class="card" id="seccard">
         <h2><i style="background:var(--c5)"></i>ความปลอดภัยและข้อมูลในเครื่อง</h2>
         <p class="note">แอปล็อกด้วย PIN 4 หลัก และจำแผน เมนูที่เลือก และตู้ครัวไว้ในเครื่องนี้ ข้อมูลไม่ถูกส่งไปที่ไหน</p>
+        <label class="fld">ชื่อผู้ใช้<input id="uname" maxlength="24" placeholder="เช่น แบมแบม" autocomplete="off"></label>
         <div class="actions" style="margin-top:12px"><button class="btn ghost" id="b-lock">ล็อกตอนนี้</button><button class="btn ghost" id="b-chpin">เปลี่ยน PIN</button></div>
       </div>
     </section>
@@ -486,6 +492,7 @@ nav button.on svg{opacity:1}
       <div class="lk-logo" aria-hidden="true">🍳</div>
       <h2 id="lk-t">ครัวคุมงบ</h2>
       <p id="lk-s"></p>
+      <input id="lk-name" class="lk-name" maxlength="24" placeholder="ชื่อผู้ใช้ของคุณ" autocomplete="off" hidden>
       <div class="lk-dots" id="lk-dots"><i></i><i></i><i></i><i></i></div>
       <div class="lk-pad" id="lk-pad">
         <button data-k="1">1</button><button data-k="2">2</button><button data-k="3">3</button>
@@ -1624,7 +1631,7 @@ async function exportPng(){
   const gr=x.createLinearGradient(0,0,W,260);gr.addColorStop(0,'#0f9b83');gr.addColorStop(1,'#5fd1b0');x.fillStyle=gr;x.fillRect(0,0,W,250);
   x.fillStyle='rgba(255,255,255,.12)';x.beginPath();x.arc(W-40,20,170,0,7);x.fill();
   x.fillStyle='#fff';x.textBaseline='alphabetic';x.font='500 26px '+F;x.fillText(S.people+' คน · '+S.days+' วัน · งบ '+baht(S.budget),P,92);
-  x.font='700 56px '+F;x.fillText('แผนอาหารของฉัน',P,160);
+  x.font='700 56px '+F;x.fillText(getName()?'แผนอาหารของ '+getName():'แผนอาหารของฉัน',P,160);
   x.fillStyle='rgba(255,255,255,.96)';rr(P,190,W-P*2,92,22);x.fill();
   const over=t.a>S.budget;x.fillStyle='#6b7a86';x.font='400 22px '+F;x.fillText('ประมาณการใช้จ่าย',P+28,224);x.fillText(over?'เกินงบ':'เหลือจากงบ',W/2+20,224);
   x.fillStyle='#1f2a33';x.font='700 34px '+F;x.fillText(baht(t.a),P+28,266);x.fillStyle=over?'#ef5d4a':G;x.fillText(baht(Math.abs(S.budget-t.a)),W/2+20,266);
@@ -1655,6 +1662,7 @@ function lsSet(k,v){try{localStorage.setItem(k,v)}catch(e){}}
 function saveState(){const o={};SAVEKEYS.forEach(k=>o[k]=S[k]);lsSet(SK,JSON.stringify(o))}
 function restoreState(){const s=lsGet(SK);if(!s)return false;try{const o=JSON.parse(s);if(!o||!Array.isArray(o.slots)||!Array.isArray(o.wanted))return false;SAVEKEYS.forEach(k=>{if(o[k]!==undefined)S[k]=o[k]});return true}catch(e){return false}}
 async function hashPin(p){const salt='kroo|'+p;try{const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(salt+'|v1'));return Array.from(new Uint8Array(b)).map(x=>x.toString(16).padStart(2,'0')).join('')}catch(e){let h=5381;for(const c of salt)h=((h<<5)+h+c.charCodeAt(0))>>>0;return 'f'+h}}
+const NK='kroo-name-v1';const getName=()=>lsGet(NK)||'';const setName=v=>lsSet(NK,(v||'').trim().slice(0,24));
 const LK={mode:'unlock',buf:'',first:'',fails:0,until:0,busy:false};
 function lkShow(mode){LK.mode=mode;LK.buf='';LK.first='';const L=$('#lock');L.hidden=false;
   $('#lk-cancel').hidden=mode!=='change-old'&&mode!=='change-new'&&mode!=='change-new2';
@@ -1664,7 +1672,8 @@ function lkText(){const m=LK.mode,t=$('#lk-t'),s=$('#lk-s');
   else if(m==='setup2'||m==='change-new2'){t.textContent='ยืนยัน PIN';s.textContent='กรอก PIN เดิมอีกครั้ง'}
   else if(m==='change-old'){t.textContent='เปลี่ยน PIN';s.textContent='กรอก PIN ปัจจุบัน'}
   else if(m==='change-new'){t.textContent='PIN ใหม่';s.textContent='กรอก PIN ใหม่ 4 หลัก'}
-  else{t.textContent='ครัวคุมงบ';s.textContent='กรอก PIN เพื่อเข้าใช้งาน'}}
+  else{const n=getName();t.textContent=n?'สวัสดี '+n:'ครัวคุมงบ';s.textContent='กรอก PIN เพื่อเข้าใช้งาน'}
+  $('#lk-name').hidden=m!=='setup'}
 function lkDots(err){const d=$('#lk-dots');d.classList.toggle('err',!!err);[...d.children].forEach((e,i)=>e.classList.toggle('on',i<LK.buf.length))}
 function lkMsg(t){$('#lk-s').textContent=t}
 async function lkDone(){if(LK.busy)return;LK.busy=true;const p=LK.buf,m=LK.mode;
@@ -1675,7 +1684,7 @@ async function lkDone(){if(LK.busy)return;LK.busy=true;const p=LK.buf,m=LK.mode;
     if(await hashPin(p)===lsGet(PK)){LK.fails=0;if(m==='unlock'){$('#lock').hidden=true;LK.buf='';lkDots()}else{LK.buf='';lkShow('change-new')}}
     else{LK.fails++;if(LK.fails>=5){LK.until=Date.now()+30000;LK.fails=0;bad('ใส่ผิดหลายครั้ง รอ 30 วินาที')}else bad('PIN ไม่ถูกต้อง')}
   }else if(m==='setup'||m==='change-new'){LK.first=p;LK.mode=m==='setup'?'setup2':'change-new2';LK.buf='';lkText();lkDots()}
-  else{if(p===LK.first){lsSet(PK,await hashPin(p));$('#lock').hidden=true;LK.buf='';LK.first='';lkDots();toast(m==='setup2'?'ตั้ง PIN แล้ว':'เปลี่ยน PIN แล้ว')}
+  else{if(p===LK.first){lsSet(PK,await hashPin(p));if(m==='setup2')setName($('#lk-name').value);$('#uname').value=getName();$('#lock').hidden=true;LK.buf='';LK.first='';lkDots();toast(m==='setup2'?'ตั้ง PIN แล้ว':'เปลี่ยน PIN แล้ว')}
     else bad('PIN ไม่ตรงกัน ลองใหม่',m==='setup2'?'setup':'change-new')}
   }finally{LK.busy=false}}
 function lkKey(k){if(LK.busy)return;
@@ -1683,8 +1692,9 @@ function lkKey(k){if(LK.busy)return;
   if(k==='x'){if(confirm('ลืม PIN? ต้องล้างข้อมูลทั้งหมดในเครื่องนี้ (แผนที่บันทึก เมนูที่เลือก) แล้วตั้ง PIN ใหม่')){try{localStorage.removeItem(SK);localStorage.removeItem(PK);localStorage.removeItem(HK)}catch(e){};location.reload()}return}
   if(!/^\d$/.test(k)||LK.buf.length>=4)return;LK.buf+=k;lkDots();if(LK.buf.length===4)setTimeout(lkDone,120)}
 $('#lk-pad').addEventListener('click',e=>{const b=e.target.closest('button[data-k]');if(b)lkKey(b.dataset.k)});
-document.addEventListener('keydown',e=>{if($('#lock').hidden)return;if(/^\d$/.test(e.key))lkKey(e.key);else if(e.key==='Backspace')lkKey('d')});
+document.addEventListener('keydown',e=>{if($('#lock').hidden||e.target.id==='lk-name')return;if(/^\d$/.test(e.key))lkKey(e.key);else if(e.key==='Backspace')lkKey('d')});
 $('#lk-cancel').addEventListener('click',()=>{$('#lock').hidden=true;LK.buf='';LK.first=''});
+$('#uname').value=getName();$('#uname').addEventListener('input',e=>setName(e.target.value));
 $('#b-lock').addEventListener('click',()=>{if(lsGet(PK))lkShow('unlock')});
 $('#b-chpin').addEventListener('click',()=>lkShow(lsGet(PK)?'change-old':'setup'));
 let hideAt=0;document.addEventListener('visibilitychange',()=>{if(document.hidden)hideAt=Date.now();else if(hideAt&&Date.now()-hideAt>60000&&lsGet(PK)&&$('#lock').hidden)lkShow('unlock')});
