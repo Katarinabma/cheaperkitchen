@@ -1246,6 +1246,7 @@ function ctry(m){if(m.cu==='T')return['TH','ไทย'];if(m.cu==='I')return['IS
   for(const[c,n,ks]of CRULES)if(ks.some(k=>m.n.includes(k)))return[c,n];return['WE','ตะวันตก']}
 const MENUS=[];
 CATS.forEach(c=>RAW[c.k].trim().split('\n').forEach(l=>{const[n,cu,ex]=l.split('|');const m={id:MENUS.length,n,cu,cat:c.k,tk:tokens(n,c,ex)};m.me=method(n);m.tg=mktags(m,c.k);m.sea=seaOf(m);const cy=ctry(m);m.co=cy[0];m.cn=cy[1];MENUS.push(m)}));
+MENUS.forEach(m=>{m.sd=/^(ส้ม)?(ตำ|ยำ)/.test(m.n)});
 const S={bought:{},people:2,days:5,meals:['เย็น'],box:[],budget:700,tab:'set',cat:'all',cu:'all',ty:'all',q:'',shown:30,wanted:[],roles:{},slots:[],real:{},have:{},
  pan:{'ซอสหอยนางรม':'low','พริกไทย':'low','น้ำมันงา':'out','พริกแกง':'out','แป้งมัน':'out'}};
 const MEALS=['เช้า','กลางวัน','เย็น'];const BOXM='ห่อไปทำงาน';
@@ -1275,7 +1276,7 @@ function planSet(){const s=new Set();allIds().forEach(i=>MENUS[i].tk.forEach(t=>
 function cand(ex,boxOnly){const set=planSet(),inPlan=new Set(allIds()),use=usage();const cc={},uc={},sc={};
   S.slots.forEach(s=>{if(s.id!=null){const m=MENUS[s.id];cc[m.cat]=(cc[m.cat]||0)+1;uc[m.cu]=(uc[m.cu]||0)+1;sc[m.n.slice(0,4)]=1}});
   const GEN=['กระเทียม','พริก'];
-  return MENUS.filter(m=>!inPlan.has(m.id)&&m.id!==ex&&(!boxOnly||m.tg.includes('box'))).map(m=>{let nw=0;const sh=[];m.tk.forEach(t=>{if(set.has(t))sh.push(t);else nw+=PRICE[t]||15});
+  return MENUS.filter(m=>!m.sd&&!inPlan.has(m.id)&&m.id!==ex&&(!boxOnly||m.tg.includes('box'))).map(m=>{let nw=0;const sh=[];m.tk.forEach(t=>{if(set.has(t))sh.push(t);else nw+=PRICE[t]||15});
     const key=sh.filter(t=>!GEN.includes(t)).length;
     return{m,nw:nw*(S.people/2),sh,score:nw*(S.people/2)-20*key-4*(sh.length-key)+m.tk.reduce((a,t)=>a+(GEN.includes(t)||(use[t]||0)<2?0:30*(use[t]-1)),0)+45*(cc[m.cat]||0)+12*(uc[m.cu]||0)+(sc[m.n.slice(0,4)]?60:0)}}).sort((a,b)=>a.score-b.score)}
 function fill(rand,ex){S.slots.forEach(s=>{if(s.kind==='auto'&&s.id==null){const c=cand(ex,s.meal===BOXM);if(c.length)s.id=c[rand?Math.floor(Math.random()*Math.min(5,c.length)):0].m.id}})}
@@ -1554,7 +1555,7 @@ function renderCats(){const cnt={all:MENUS.length};MENUS.forEach(m=>cnt[m.cat]=(
   $('#cats').innerHTML=[{k:'all',n:'ทั้งหมด'},...CATS].map(c=>`<button class="chip ${S.cat===c.k?'on':''}" data-cat="${c.k}">${ico(c.k)}${c.n} ${cnt[c.k]}</button>`).join('');
   $('#types').innerHTML=TYPES.map(([k,n,c])=>`<button class="chip ${c} ${S.ty===k?'on':''}" data-ty="${k}">${n}</button>`).join('');
   $('#cus').innerHTML=[['all','ทุกสไตล์','c-blu'],['T','ไทย','c-red'],['I','อีสาน','c-yel'],['F','ต่างชาติ','c-pur']].map(([k,n,c])=>`<button class="chip ${c} ${S.cu===k?'on':''}" data-cu="${k}">${n}</button>`).join('')}
-function menuTags(m){return `${m.ref?'<span class="tag g">✓ สูตรอ้างอิง</span>':''}<span class="tag ${CUC[m.cu]}">${m.cn}</span>${m.tg.includes('veg')?'<span class="tag g">เน้นผัก</span>':''}${m.tg.includes('protein')?'<span class="tag r">เน้นโปรตีน</span>':''}${m.tg.includes('box')?'<span class="tag b">ห่อได้</span>':''}`}
+function menuTags(m){return `${m.sd?'<span class="tag b">เครื่องเคียง</span>':''}${m.ref?'<span class="tag g">✓ สูตรอ้างอิง</span>':''}<span class="tag ${CUC[m.cu]}">${m.cn}</span>${m.tg.includes('veg')?'<span class="tag g">เน้นผัก</span>':''}${m.tg.includes('protein')?'<span class="tag r">เน้นโปรตีน</span>':''}${m.tg.includes('box')?'<span class="tag b">ห่อได้</span>':''}`}
 function mcost(m){return m.tk.reduce((s,t)=>s+(PRICE[t]||15),0)*S.people/2}
 function renderMenus(){const q=S.q.trim();const inPlan=new Set(allIds());
   const list=MENUS.filter(m=>(S.cat==='all'||m.cat===S.cat)&&(S.cu==='all'||m.cu===S.cu)&&(S.ty==='all'||m.tg.includes(S.ty))&&(!q||m.n.includes(q)||m.tk.some(t=>t.includes(q))));
@@ -1576,7 +1577,7 @@ function renderPlan(){const T=totals(),u=T.u;
 function fitBudget(){let g=0,n=0;
   while(totals().a>S.budget&&g++<14){const cur=totals().a;let best=null;const inPlan=new Set(allIds());
     S.slots.forEach((s,i)=>{if(s.kind!=='auto'||s.locked||s.id==null)return;const old=s.id;
-      MENUS.filter(m=>!inPlan.has(m.id)&&(s.meal!==BOXM||m.tg.includes('box'))).sort((a,b)=>mcost(a)-mcost(b)).slice(0,25).forEach(m=>{s.id=m.id;const a=totals().a;if(a<cur&&(!best||a<best.a))best={i,id:m.id,a}});s.id=old});
+      MENUS.filter(m=>!m.sd&&!inPlan.has(m.id)&&(s.meal!==BOXM||m.tg.includes('box'))).sort((a,b)=>mcost(a)-mcost(b)).slice(0,25).forEach(m=>{s.id=m.id;const a=totals().a;if(a<cur&&(!best||a<best.a))best={i,id:m.id,a}});s.id=old});
     if(!best)break;S.slots[best.i].id=best.id;n++}
   all();const a=totals().a;
   toast(a<=S.budget?`จัดให้พอดีงบแล้ว เปลี่ยน ${n} มื้อ เหลือ ${baht(S.budget-a)}`:n?`ลดได้เหลือ ${baht(a)} แต่ยังเกินงบ ลองเพิ่มงบ หรือเอาเมนูอยากกินออก`:'ไม่มีมื้อที่สลับได้ ลองปลดล็อกมื้อ เพิ่มงบ หรือลดจำนวนคน')}
@@ -1664,6 +1665,7 @@ document.addEventListener('click',e=>{
   if(d.wantrole){const[i,r]=d.wantrole.split(':'),id=+i,on=!(S.wanted.includes(id)&&(S.roles[id]||'main')===r);if(!setWant(id,on,r)){toast('แผนเต็มแล้ว ลองเพิ่มจำนวนวัน');return}resize();all();openRecipe(id);toast(on?(r==='side'?'เพิ่มเป็นเครื่องเคียงแล้ว':'เพิ่มเป็นเมนูหลักแล้ว'):'เอาออกแล้ว');return}
   if(d.role){const id=+d.role;setWant(id,true,S.roles[id]==='side'?'main':'side');resize();all();return}
   if(d.unside){const s=S.slots[+d.unside],id=s.side;if(S.wanted.includes(id))setWant(id,false);else s.side=null;resize();all();toast('เอาเครื่องเคียงออกแล้ว');return}
+  if(d.add&&MENUS[+d.add].sd){const id=+d.add;if(allIds().includes(id))toast('เมนูนี้อยู่ในแผนแล้ว');else if(setWant(id,true,'side')){resize();all();toast('ใส่เป็นเครื่องเคียงแล้ว');if(d.keep)openRecipe(id)}else toast('ไม่มีมื้อให้เพิ่มเครื่องเคียง');return}
   if(d.add){const r=addPick(+d.add);if(r==='dup')toast('เมนูนี้อยู่ในแผนแล้ว');else if(r==='full')toast('แผนเต็มแล้ว ลองเพิ่มจำนวนวัน');else{all();toast('ใส่ในแผนแล้ว');if(d.keep)openRecipe(+d.add)}return}
   if(d.bought){S.bought[d.bought]=!S.bought[d.bought];all();return}
   if(d.havebtn){S.have[d.havebtn]=!S.have[d.havebtn];all();return}
@@ -1761,7 +1763,8 @@ $('#b-chpin').addEventListener('click',()=>lkShow(lsGet(PK)?'change-old':'setup'
 let hideAt=0;document.addEventListener('visibilitychange',()=>{if(document.hidden)hideAt=Date.now();else if(hideAt&&Date.now()-hideAt>60000&&lsGet(PK)&&$('#lock').hidden)lkShow('unlock')});
 const _all=all;all=function(){_all();saveState()};
 S.draft=null;loadHist();
-if(!restoreState()){S.wanted=[];S.slots=Array.from({length:S.days},(_,d)=>({day:d,meal:'เย็น',id:null,kind:'auto'}));
+const _rs=restoreState();if(_rs){S.slots.forEach(s=>{if(s.kind==='auto'&&s.id!=null&&MENUS[s.id].sd)s.id=null});fill(false)}
+if(!_rs){S.wanted=[];S.slots=Array.from({length:S.days},(_,d)=>({day:d,meal:'เย็น',id:null,kind:'auto'}));
 setWant(nameId('ไก่ผัดโหระพา'),true);
 setWant(nameId('ผักโขมน้ำมันงา'),true,'side')}
 resize();
