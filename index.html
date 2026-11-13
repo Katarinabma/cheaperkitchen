@@ -404,6 +404,11 @@ button:focus-visible,input:focus-visible,a:focus-visible{outline:3px solid rgba(
 
 .no{color:var(--muted);font-weight:600;font-variant-numeric:tabular-nums;margin-right:2px}
 
+.card.rep{display:flex;align-items:center;justify-content:space-between;gap:12px;background:#e9f8f4;border:1px solid #bfeadf}.card.rep b{display:block;color:#0f8a73}.card.rep small{color:#6b7a86;font-size:12px}.card.rep .btn{white-space:nowrap}
+.kgs{display:grid;grid-template-columns:1fr;gap:8px;margin-top:10px}@media(min-width:641px){.kgs{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.kgrow{display:flex;align-items:center;gap:8px;background:var(--soft);border-radius:14px;padding:8px 12px;font-size:13px;font-weight:600}
+.kgrow span{flex:1;min-width:0;white-space:nowrap}.kgrow input{width:64px;border:1px solid var(--line);border-radius:10px;padding:6px 8px;font:inherit;font-weight:700;text-align:right;background:#fff}.kgrow em{font-style:normal;font-weight:400;font-size:11px;color:var(--muted)}
+
 </style>
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#14a58a">
@@ -470,6 +475,7 @@ button:focus-visible,input:focus-visible,a:focus-visible{outline:3px solid rgba(
   <main>
     <button class="bnote" id="bnote" data-go="shop" hidden>ราคาเป็นค่าประมาณ ถ้ามีของที่บ้านแล้ว (เช่น เครื่องปรุงบางตัว) กดไปหน้าซื้อของ แล้วติ๊ก “มีที่บ้านแล้ว” ออกได้เลย</button>
     <section class="view on" id="v-set">
+      <div id="repbar"></div>
       <div class="card">
         <h2><i></i>ภารกิจมื้อนี้</h2>
         <div class="row"><div><label>จำนวนคน</label><small>ปริมาณวัตถุดิบคิดตามจำนวนคน</small></div>
@@ -482,6 +488,13 @@ button:focus-visible,input:focus-visible,a:focus-visible{outline:3px solid rgba(
           <div class="chips" id="boxchips" style="justify-content:flex-end"></div></div>
         <div class="row"><div><label>งบรวม</label><small id="perhint"></small></div>
           <div class="step"><button data-a="b-" aria-label="ลดงบ">−</button><output id="o-b"></output><button data-a="b+" aria-label="เพิ่มงบ">+</button></div></div>
+      </div>
+      <div class="card">
+        <h2><i style="background:var(--c3)"></i>เนื้อสัตว์</h2>
+        <div class="row" style="align-items:flex-start"><div><label>เนื้อดิบต่อคนต่อมื้อ</label><small>ลดตรงนี้ถ้าอยากประหยัด มีผลกับรายการซื้อของและงบ</small></div>
+          <div class="chips" id="portchips" style="justify-content:flex-end"></div></div>
+        <div class="kgs" id="kgrows"></div>
+        <p class="note" style="margin-top:8px">ราคาต่อกิโลกรัมเป็นค่าประมาณตั้งต้น ปรับให้ตรงกับร้านที่คุณซื้อได้ และแอปจะจำราคาที่คุณกรอกตอนซื้อจริงไว้ใช้ครั้งถัดไป หน้าสูตรยังแสดงปริมาณตามสูตรต้นฉบับ</p>
       </div>
       <div class="card">
         <h2><i style="background:var(--c2)"></i>เมนูที่อยากกิน</h2>
@@ -1252,7 +1265,7 @@ function ctry(m){if(m.cu==='T')return['TH','ไทย'];if(m.cu==='I')return['IS
 const MENUS=[];
 CATS.forEach(c=>RAW[c.k].trim().split('\n').forEach(l=>{const[n,cu,ex]=l.split('|');const m={id:MENUS.length,n,cu,cat:c.k,tk:tokens(n,c,ex)};m.me=method(n);m.tg=mktags(m,c.k);m.sea=seaOf(m);const cy=ctry(m);m.co=cy[0];m.cn=cy[1];MENUS.push(m)}));
 MENUS.forEach(m=>{m.sd=/^(ส้ม)?(ตำ|ยำ)/.test(m.n)});
-const S={bought:{},people:2,days:5,meals:['เย็น'],box:[],budget:700,tab:'set',cat:'all',cu:'all',ty:'all',q:'',shown:30,wanted:[],roles:{},slots:[],real:{},have:{},
+const S={portion:150,kg:{'หมู':180,'ไก่':110,'เนื้อวัว':400,'ปลา':160,'อาหารทะเล':320},bought:{},people:2,days:5,meals:['เย็น'],box:[],budget:700,tab:'set',cat:'all',cu:'all',ty:'all',q:'',shown:30,wanted:[],roles:{},slots:[],real:{},have:{},
  pan:{}};
 const MEALS=['เช้า','กลางวัน','เย็น'];const BOXM='ห่อไปทำงาน';
 const MORDER=['เช้า','กลางวัน',BOXM,'เย็น'];
@@ -1265,24 +1278,34 @@ function seaNeed(){const s={};allIds().forEach(i=>MENUS[i].sea.forEach(n=>s[n]=(
 const PEX={'พริกแกง':25,'กะปิ':20,'ข้าวคั่ว':15,'อบเชย':10,'โป๊ยกั๊ก':10,'พริกไทย':15,'เห็ดหูหนู':15,'มะขามเปียก':15,'น้ำตาลปี๊บ':20,'กระชาย':10,'ใบแมงลัก':10,'พริกไทยอ่อน':20,'ขิงอ่อน':10,'ผักกาดหอม':15,'ไข่ต้ม':10,'พริกป่น':10,'กุ้งแห้ง':25,'กุ้ง':140,'ข่า':10,'ผักชีฝรั่ง':10,'ผักชี':10,'สะระแหน่':10,'หอมแดง':15,'มะละกอ':25,'ถั่วลิสง':20,'ชะอม':15,'ทาฮินี':35,'แพร์':30,'ผักกาด':20,'โบนิโตะ':20,'มะเขือเปราะ':20,'มะเขือพวง':20,'รากผักชี':5,'นมสด':15,'ใบมะกรูด':10,'พริกชี้ฟ้า':10,'พริกแห้ง':10,'กิมจิ':30};
 const PKEYS=Object.keys(PRICE).sort((a,b)=>b.length-a.length);
 function priceOf(n){for(const k in PEX)if(n.includes(k))return PEX[k];for(const k of PKEYS)if(n.includes(k))return PRICE[k];return 15}
-function est2(n,uses){return Math.round((priceOf(n)*(S.people/2)*(1+.5*(uses-1)))/5)*5}
+const LEARN={kg:{},flat:{}};
+const MEATTOK=['หมู','ไก่','เนื้อวัว','ปลา','อาหารทะเล'];
+const W_UNITS={'กรัม':1,'กิโลกรัม':1000,'กก.':1000,'ขีด':100};
+function meatType(k){const c=shopCat(k);if(c===0)return 'หมู';if(c===1)return 'ไก่';if(c===2)return 'เนื้อวัว';if(c===3)return /ปลา/.test(k)?'ปลา':'อาหารทะเล';return null}
+function gramsOf(o){let g=0,any=false;for(const u in o.u)if(W_UNITS[u]){g+=o.u[u]*W_UNITS[u];any=true}return any?g:null}
+function tokCost(t){return MEATTOK.includes(t)?(S.kg[t]||PRICE[t]||100)*0.3*(S.portion/150)*(t==='ปลา'?170/150:1):(PRICE[t]||15)}
+function thaiW(g){if(g>=1000){return (Math.round(g/100)/10).toString().replace(/\.0$/,'')+' กก.'}if(g<100)return Math.round(g/10)*10+' กรัม';const n=Math.round(g/50)/2,w=Math.floor(n);return (w||'')+(n%1?'½':'')+' ขีด'}
+function est2(n,uses,o){const mt=meatType(n),g=o&&mt?gramsOf(o):null;
+  if(mt&&g)return Math.max(5,Math.round((LEARN.kg[n]||S.kg[mt]||100)*g/1000/5)*5);
+  if(!mt&&LEARN.flat[n])return Math.round(LEARN.flat[n]);
+  return Math.round((priceOf(n)*(S.people/2)*(1+.5*(uses-1)))/5)*5}
 function cleanN(n){n=n.replace(/\s*[(（].*$/,'').trim().split(/\s+/)[0];return n.replace(/^เนื้อ(หมู|ไก่)/,'$1').replace(/^(หมู|ไก่)(สับ|ชิ้น).*$/,'$1').replace(/^ไข่ไก่$/,'ไข่')}
 const JUNK=/^น้ำ(?:เปล่า|สุก|ต้มสุกเย็น|ต้ม|เย็นจัด|เย็น|ร้อน|อุ่น|ประมาณ.*)?$|น้ำสต๊อกหรือน้ำเปล่า|น้ำซุปหรือน้ำเปล่า|น้ำต้มเส้น|ไม้เสียบ|ไม้จิ้ม/;
 function shopAgg(){const g={};
   S.slots.forEach(sl=>sids(sl).forEach(id=>{const m=MENUS[id];const rr=recipe(m,S.people);rr.sea.filter(x=>!SEAMAP[x.n]&&!JUNK.test(cleanN(x.n))).forEach(x=>{const k=cleanN(x.n);const o=g[k]||(g[k]={u:{},txt:[],ms:[]});if(!o.txt.includes(x.q))o.txt.push(x.q);if(!o.ms.includes(m.n))o.ms.push(m.n)});rr.ing.forEach(x=>{const k=cleanN(x.n);if(JUNK.test(k)||x.v===0)return;const o=g[k]||(g[k]={u:{},txt:[],ms:[]});
-    if(x.v!=null)o.u[x.u]=(o.u[x.u]||0)+x.v;else if(!o.txt.includes(x.q))o.txt.push(x.q);if(!o.ms.includes(m.n))o.ms.push(m.n)})}));
+    if(x.v!=null)o.u[x.u]=(o.u[x.u]||0)+(W_UNITS[x.u]&&meatType(k)?x.v*(S.portion/150):x.v);else if(!o.txt.includes(x.q))o.txt.push(x.q);if(!o.ms.includes(m.n))o.ms.push(m.n)})}));
   S.slots.forEach(sl=>sids(sl).forEach(id=>{const rr=recipe(MENUS[id],S.people);new Set(rr.sea.filter(x=>!SEAMAP[x.n]).concat(rr.ing).map(x=>cleanN(x.n)).filter(k=>!JUNK.test(k))).forEach(k=>{if(g[k])g[k].c=(g[k].c||0)+1})}));return g}
 function aggQty(o){const p=Object.entries(o.u).map(([u,v])=>fmtq(v,u));return p.length?p.join(' + '):(o.txt[0]||'ตามชอบ')}
 function est(t,n){return Math.round((PRICE[t]||15)*(S.people/2)*(1+.5*(n-1))/5)*5}
 function totals(){const u=usage(),sn=seaNeed();let e=0,a=0;
-  const ag=shopAgg();for(const t in ag){if(S.have[t])continue;const x=est2(t,ag[t].ms.length);e+=x;a+=(S.real[t]!==undefined&&S.real[t]!=='')?+S.real[t]:x}
+  const ag=shopAgg();for(const t in ag){if(S.have[t])continue;const x=est2(t,ag[t].ms.length,ag[t]);e+=x;a+=(S.real[t]!==undefined&&S.real[t]!=='')?+S.real[t]:x}
   for(const n in sn){if(panOf(n)==='have'||S.have['s:'+n])continue;const x=SEAMAP[n].p;e+=x;const r=S.real['s:'+n];a+=(r!==undefined&&r!=='')?+r:x}
   return{e,a,u,sn}}
 function planSet(){const s=new Set();allIds().forEach(i=>MENUS[i].tk.forEach(t=>s.add(t)));return s}
 function cand(ex,boxOnly){const set=planSet(),inPlan=new Set(allIds()),use=usage();const cc={},uc={},sc={};
   S.slots.forEach(s=>{if(s.id!=null){const m=MENUS[s.id];cc[m.cat]=(cc[m.cat]||0)+1;uc[m.cu]=(uc[m.cu]||0)+1;sc[m.n.slice(0,4)]=1}});
   const GEN=['กระเทียม','พริก'];
-  return MENUS.filter(m=>!m.sd&&!inPlan.has(m.id)&&m.id!==ex&&(!boxOnly||m.tg.includes('box'))).map(m=>{let nw=0;const sh=[];m.tk.forEach(t=>{if(set.has(t))sh.push(t);else nw+=PRICE[t]||15});
+  return MENUS.filter(m=>!m.sd&&!inPlan.has(m.id)&&m.id!==ex&&(!boxOnly||m.tg.includes('box'))).map(m=>{let nw=0;const sh=[];m.tk.forEach(t=>{if(set.has(t))sh.push(t);else nw+=tokCost(t)});
     const key=sh.filter(t=>!GEN.includes(t)).length;
     return{m,nw:nw*(S.people/2),sh,score:nw*(S.people/2)-20*key-4*(sh.length-key)+m.tk.reduce((a,t)=>a+(GEN.includes(t)||(use[t]||0)<2?0:30*(use[t]-1)),0)+45*(cc[m.cat]||0)+12*(uc[m.cu]||0)+(sc[m.n.slice(0,4)]?60:0)}}).sort((a,b)=>a.score-b.score)}
 function fill(rand,ex){S.slots.forEach(s=>{if(s.kind==='auto'&&s.id==null){const c=cand(ex,s.meal===BOXM);if(c.length)s.id=c[rand?Math.floor(Math.random()*Math.min(5,c.length)):0].m.id}})}
@@ -1553,7 +1576,11 @@ function head(){const{a}=totals();const pct=Math.min(a/S.budget,1);const f=$('#b
   $('#stars').innerHTML=starsHtml(curScore());
   const bd=(id,v)=>{const e=$('#bd-'+id);if(e)e.textContent=v};
   const sn=seaNeed();bd('plan',S.slots.length);bd('pan',Object.keys(sn).filter(n=>panOf(n)!=='have').length);bd('shop',Object.keys(usage()).length);bd('hist',HIST.length)}
-function renderSet(){$('#o-p').textContent=S.people+' คน';$('#o-d').textContent=S.days+' วัน';$('#o-b').textContent=baht(S.budget);
+function renderSet(){
+  $('#portchips').innerHTML=[100,150,200,250].map(g=>`<button class="chip ${S.portion===g?'on c-red':''}" data-portion="${g}">${g} กรัม</button>`).join('');
+  $('#kgrows').innerHTML=MEATTOK.map(t=>`<label class="kgrow"><span>${t==='เนื้อวัว'?'เนื้อวัว':t}</span><input type="number" inputmode="decimal" min="0" data-kg="${t}" value="${S.kg[t]}" aria-label="ราคาต่อกิโลกรัม ${t}"><em>บาท/กก.</em></label>`).join('');
+  const rp=HIST.find(h=>h.id>1000);$('#repbar').innerHTML=rp?`<div class="card rep"><div><b>ใช้แผนสัปดาห์ก่อน</b><small>${rp.title} · ${rp.when}</small></div><button class="btn grn" data-restore="${rp.id}">ใช้เลย</button></div>`:'';
+$('#o-p').textContent=S.people+' คน';$('#o-d').textContent=S.days+' วัน';$('#o-b').textContent=baht(S.budget);
   const n=S.slots.length;$('#perhint').textContent=n+' มื้อ · เฉลี่ย '+baht(S.budget/n)+' ต่อมื้อ · '+baht(S.budget/n/S.people)+' ต่อคน';
   $('#mealchips').innerHTML=MEALS.map(m=>`<button class="chip ${S.meals.includes(m)?'on c-red':''}" data-meal="${m}">${m}</button>`).join('');
   $('#boxchips').innerHTML=DS.slice(0,S.days).map((d,i)=>`<button class="chip ${S.box.includes(i)?'on c-pur':''}" data-box="${i}" aria-label="ห่อข้าววัน${DAYS[i]}">${d}</button>`).join('');
@@ -1563,7 +1590,7 @@ function renderCats(){const cnt={all:MENUS.length};MENUS.forEach(m=>cnt[m.cat]=(
   $('#types').innerHTML=TYPES.map(([k,n,c])=>`<button class="chip ${c} ${S.ty===k?'on':''}" data-ty="${k}">${n}</button>`).join('');
   $('#cus').innerHTML=[['all','ทุกสไตล์','c-blu'],['T','ไทย','c-red'],['I','อีสาน','c-yel'],['F','ต่างชาติ','c-pur']].map(([k,n,c])=>`<button class="chip ${c} ${S.cu===k?'on':''}" data-cu="${k}">${n}</button>`).join('')}
 function menuTags(m){return `${m.sd?'<span class="tag b">เครื่องเคียง</span>':''}${m.ref?'<span class="tag g">✓ สูตรอ้างอิง</span>':''}<span class="tag ${CUC[m.cu]}">${m.cn}</span>${m.tg.includes('veg')?'<span class="tag g">เน้นผัก</span>':''}${m.tg.includes('protein')?'<span class="tag r">เน้นโปรตีน</span>':''}${m.tg.includes('box')?'<span class="tag b">ห่อได้</span>':''}`}
-function mcost(m){return m.tk.reduce((s,t)=>s+(PRICE[t]||15),0)*S.people/2}
+function mcost(m){return m.tk.reduce((s,t)=>s+tokCost(t),0)*S.people/2}
 function renderMenus(){const q=S.q.trim();const inPlan=new Set(allIds());
   const list=MENUS.filter(m=>(S.cat==='all'||m.cat===S.cat)&&(S.cu==='all'||m.cu===S.cu)&&(S.ty==='all'||m.tg.includes(S.ty))&&(!q||m.n.includes(q)||m.tk.some(t=>t.includes(q))));
   $('#cnt').textContent='พบ '+list.length+' เมนู · กดชื่อเมนูเพื่อดูสูตร';
@@ -1588,6 +1615,8 @@ function fitBudget(){let g=0,n=0;
     if(!best)break;S.slots[best.i].id=best.id;n++}
   all();const a=totals().a;
   toast(a<=S.budget?`จัดให้พอดีงบแล้ว เปลี่ยน ${n} มื้อ เหลือ ${baht(S.budget-a)}`:n?`ลดได้เหลือ ${baht(a)} แต่ยังเกินงบ ลองเพิ่มงบ หรือเอาเมนูอยากกินออก`:'ไม่มีมื้อที่สลับได้ ลองปลดล็อกมื้อ เพิ่มงบ หรือลดจำนวนคน')}
+const LRK='kroo-learn-v1';
+function learnReal(k,v){v=+v;if(!(v>0)||k.startsWith('s:'))return;const o=shopAgg()[k];if(!o)return;const mt=meatType(k),g=gramsOf(o);if(mt&&g>=50)LEARN.kg[k]=Math.round(v/(g/1000));else LEARN.flat[k]=Math.round(v);lsSet(LRK,JSON.stringify(LEARN))}
 function sumHtml(){const t=totals();return `<div><span>ประมาณการ</span><b>${baht(t.e)}</b></div><div><span>จ่ายจริง</span><b>${baht(t.a)}</b></div><div><span>${t.a>S.budget?'เกินงบ':'เหลือ'}</span><b style="color:${t.a>S.budget?'var(--bad)':'var(--good)'}">${baht(Math.abs(S.budget-t.a))}</b></div>`}
 function shopRow(key,name,sub,placeholder,have){return `<div class="shop ${have?'have':''}"><div class="nm">${name}</div><div class="pr"><input type="number" inputmode="decimal" min="0" data-real="${key}" value="${S.real[key]??''}" placeholder="${placeholder}" aria-label="ราคา ${name}" ${have?'disabled':''}><input type="checkbox" data-have="${key}" ${have?'checked':''} aria-label="มีที่บ้านแล้ว ${name}"></div><div class="sub">${sub}</div></div>`}
 function shopCat(n){
@@ -1614,8 +1643,10 @@ function renderShop(){const u=usage(),sn=seaNeed(),ag=shopAgg();
   $('#sum').innerHTML=sumHtml();
   const ks=Object.keys(ag),buy=ks.filter(t=>!S.have[t]).length;
   const groups=SHOPG.map((gn,gi)=>{const l=ks.filter(t=>shopCat(t)===gi).sort((x,y)=>ag[y].ms.length-ag[x].ms.length||x.localeCompare(y,'th'));if(!l.length)return '';
-    return `<div class="sgh">${gn} <small>${l.length} อย่าง</small></div>`+l.map(t=>{const o=ag[t];const ms=o.ms.length>3?o.ms.slice(0,3).join(' · ')+' +'+(o.ms.length-3):o.ms.join(' · ');
-      const c=o.c||o.ms.length,pe=est2(t,o.ms.length);return shopRow2(t,t,aggQty(o),`ใช้ใน: ${ms} · ~${baht(pe)} (≈${baht(Math.round(pe/c))}/มื้อ)${S.have[t]?' · มีแล้ว':''}`,pe,S.have[t],`สำหรับ ${c} มื้อ · ${S.people} คน`)}).join('')}).join('');
+    const wsum=gi<=3?l.reduce((s,t)=>s+(S.have[t]?0:(gramsOf(ag[t])||0)),0):0;return `<div class="sgh">${gn} <small>${l.length} อย่าง${wsum>=50?' · รวม ~'+thaiW(wsum)+' ('+Math.round(wsum/10)*10+' กรัม)':''}</small></div>`+l.map(t=>{const o=ag[t];const ms=o.ms.length>3?o.ms.slice(0,3).join(' · ')+' +'+(o.ms.length-3):o.ms.join(' · ');
+      const c=o.c||o.ms.length,pe=est2(t,o.ms.length,o);const mt=meatType(t),g=mt?gramsOf(o):null;
+      const wx=g?` · ≈${thaiW(g)}`:'';const fz=g&&c>=2&&g/c>=50?` · แบ่งแช่แข็ง ${c} ถุง ถุงละ ~${Math.round(g/c/10)*10} กรัม`:'';const lr=(mt&&g?LEARN.kg[t]:LEARN.flat[t])?' · ราคาที่เคยซื้อ':'';
+      return shopRow2(t,t,aggQty(o),`ใช้ใน: ${ms} · ~${baht(pe)} (≈${baht(Math.round(pe/c))}/มื้อ)${wx}${fz}${lr}${S.have[t]?' · มีแล้ว':''}`,pe,S.have[t],`สำหรับ ${c} มื้อ · ${S.people} คน`)}).join('')}).join('');
   $('#shoplist').innerHTML=groups||'<div class="empty">ยังไม่มีเมนูในแผน</div>';
   const got=ks.filter(t=>!S.have[t]&&S.bought[t]).length;$('#shopcount').textContent=ks.length?`วัตถุดิบทั้งหมด ${ks.length} อย่าง · ต้องซื้อ ${buy} อย่าง · ซื้อแล้ว ${got}/${buy}`:'';
   const sk=Object.keys(sn).sort((x,y)=>sn[y]-sn[x]);const need=sk.filter(n=>panOf(n)!=='have');
@@ -1674,6 +1705,7 @@ document.addEventListener('click',e=>{
     else if(a==='b-')S.budget=Math.max(100,S.budget-100);else if(a==='b+')S.budget+=100;
     else if(a==='shuffle'){S.slots.forEach(s=>{if(s.kind==='auto'&&!s.locked)s.id=null});fill(true);toast('จัดเมนูที่เหลือใหม่แล้ว')}
     S.box=S.box.filter(x=>x<S.days);resize();all();return}
+  if(d.portion){S.portion=+d.portion;all();return}
   if(d.meal){const m=d.meal;if(S.meals.includes(m)){if(S.meals.length>1)S.meals=S.meals.filter(x=>x!==m)}else S.meals=MEALS.filter(x=>x===m||S.meals.includes(x));resize();all();return}
   if(d.box){const i=+d.box;S.box=S.box.includes(i)?S.box.filter(x=>x!==i):[...S.box,i];resize();all();toast(S.box.includes(i)?'เพิ่มมื้อห่อไปทำงานวัน'+DAYS[i]:'เอามื้อห่อข้าวออกแล้ว');return}
   if(d.unwant){setWant(+d.unwant,false);resize();all();return}
@@ -1696,7 +1728,8 @@ document.addEventListener('click',e=>{
 });
 document.addEventListener('input',e=>{const t=e.target;
   if(t.id==='q'){S.q=t.value;S.shown=30;renderMenus();return}
-  if(t.dataset.real){S.real[t.dataset.real]=t.value;head();$('#sum').innerHTML=sumHtml()}});
+  if(t.dataset.kg){S.kg[t.dataset.kg]=Math.max(0,+t.value||0);head();renderShop();renderMenus();renderPlan();return}
+  if(t.dataset.real){S.real[t.dataset.real]=t.value;learnReal(t.dataset.real,t.value);head();$('#sum').innerHTML=sumHtml()}});
 document.addEventListener('change',e=>{const t=e.target;if(t.dataset.have){S.have[t.dataset.have]=t.checked;all()}});
 
 /* ===== ส่งออกแผนเป็น PNG ===== */
@@ -1740,7 +1773,7 @@ async function exportPng(){
 
 /* ===== จำข้อมูลตามเครื่อง + ล็อกด้วย PIN ===== */
 const SK='kroo-state-v1',PK='kroo-pin-v1';
-const SAVEKEYS=['people','days','meals','budget','wanted','roles','slots','real','have','pan','bought','box','draft','cu','ty'];
+const SAVEKEYS=['portion','kg','people','days','meals','budget','wanted','roles','slots','real','have','pan','bought','box','draft','cu','ty'];
 function lsGet(k){try{return localStorage.getItem(k)}catch(e){return null}}
 function lsSet(k,v){try{localStorage.setItem(k,v)}catch(e){}}
 function saveState(){const o={};SAVEKEYS.forEach(k=>o[k]=S[k]);lsSet(SK,JSON.stringify(o))}
@@ -1784,6 +1817,7 @@ $('#b-chpin').addEventListener('click',()=>lkShow(lsGet(PK)?'change-old':'setup'
 let hideAt=0;document.addEventListener('visibilitychange',()=>{if(document.hidden)hideAt=Date.now();else if(hideAt&&Date.now()-hideAt>60000&&lsGet(PK)&&$('#lock').hidden)lkShow('unlock')});
 const _all=all;all=function(){_all();saveState()};
 S.draft=null;loadHist();
+try{Object.assign(LEARN,JSON.parse(lsGet(LRK)||'{}'))}catch(e){}
 const _rs=restoreState();if(_rs){S.slots.forEach(s=>{if(s.kind==='auto'&&s.id!=null&&MENUS[s.id].sd)s.id=null});fill(false)}
 if(!_rs){S.wanted=[];S.slots=Array.from({length:S.days},(_,d)=>({day:d,meal:'เย็น',id:null,kind:'auto'}));
 setWant(nameId('ไก่ผัดโหระพา'),true);
