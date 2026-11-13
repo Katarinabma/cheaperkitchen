@@ -396,6 +396,8 @@ button:focus-visible,input:focus-visible,a:focus-visible{outline:3px solid rgba(
 }
 @media (min-width:1500px){.phone{max-width:1440px}}
 
+.qty.meal{background:#fff3ec;color:#d4552f}
+
 </style>
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#14a58a">
@@ -1258,7 +1260,8 @@ function est2(n,uses){return Math.round((priceOf(n)*(S.people/2)*(1+.5*(uses-1))
 function cleanN(n){n=n.replace(/\s*[(（].*$/,'').trim().split(/\s+/)[0];return n.replace(/^เนื้อ(หมู|ไก่)/,'$1').replace(/^(หมู|ไก่)(สับ|ชิ้น).*$/,'$1').replace(/^ไข่ไก่$/,'ไข่')}
 function shopAgg(){const g={};
   S.slots.forEach(sl=>sids(sl).forEach(id=>{const m=MENUS[id];const rr=recipe(m,S.people);rr.sea.filter(x=>!SEAMAP[x.n]).forEach(x=>{const k=cleanN(x.n);const o=g[k]||(g[k]={u:{},txt:[],ms:[]});if(!o.txt.includes(x.q))o.txt.push(x.q);if(!o.ms.includes(m.n))o.ms.push(m.n)});rr.ing.forEach(x=>{const k=cleanN(x.n);const o=g[k]||(g[k]={u:{},txt:[],ms:[]});
-    if(x.v!=null)o.u[x.u]=(o.u[x.u]||0)+x.v;else if(!o.txt.includes(x.q))o.txt.push(x.q);if(!o.ms.includes(m.n))o.ms.push(m.n)})}));return g}
+    if(x.v!=null)o.u[x.u]=(o.u[x.u]||0)+x.v;else if(!o.txt.includes(x.q))o.txt.push(x.q);if(!o.ms.includes(m.n))o.ms.push(m.n)})}));
+  S.slots.forEach(sl=>sids(sl).forEach(id=>{const rr=recipe(MENUS[id],S.people);new Set(rr.sea.filter(x=>!SEAMAP[x.n]).concat(rr.ing).map(x=>cleanN(x.n))).forEach(k=>{if(g[k])g[k].c=(g[k].c||0)+1})}));return g}
 function aggQty(o){const p=Object.entries(o.u).map(([u,v])=>fmtq(v,u));return p.length?p.join(' + '):(o.txt[0]||'ตามชอบ')}
 function est(t,n){return Math.round((PRICE[t]||15)*(S.people/2)*(1+.5*(n-1))/5)*5}
 function totals(){const u=usage(),sn=seaNeed();let e=0,a=0;
@@ -1570,9 +1573,9 @@ function sumHtml(){const t=totals();return `<div><span>ประมาณกา�
 function shopRow(key,name,sub,placeholder,have){return `<div class="shop ${have?'have':''}"><div class="nm">${name}</div><div class="pr"><input type="number" inputmode="decimal" min="0" data-real="${key}" value="${S.real[key]??''}" placeholder="${placeholder}" aria-label="ราคา ${name}" ${have?'disabled':''}><input type="checkbox" data-have="${key}" ${have?'checked':''} aria-label="มีที่บ้านแล้ว ${name}"></div><div class="sub">${sub}</div></div>`}
 function shopCat(n){if(/พริกแกง|กะปิ|ข้าวคั่ว|โป๊ยกั๊ก|อบเชย|พริกไทย|พริกป่น|น้ำพริกเผา|มะขามเปียก|น้ำตาล|ปลาร้า/.test(n))return 3;if(/ไข่|เต้าหู้/.test(n))return 2;if(/หมู|ไก่|เนื้อ|ปลา(?!ร้า)|กุ้ง|หมึก|ปู|หอย|แซลมอน|ทูน่า|ไส้กรอก|เบคอน|แฮม/.test(n))return 0;if(/ไข่|เต้าหู้/.test(n))return 2;if(/ผัก|ใบ|ต้น|หอม|กระเทียม|พริก|ขิง|ข่า|ตะไคร้|มะนาว|มะเขือ|มะละกอ|ถั่ว|เห็ด|แตง|แครอท|กะหล่ำ|คะน้า|ฟัก|หน่อไม้|สะระแหน่|ชะอม|โหระพา|กะเพรา|โขม|ตำลึง|บร็อค|แพร์|ไชเท้า|มันฝรั่ง|กวางตุ้ง/.test(n))return 1;return 3}
 const SHOPG=['เนื้อสัตว์ · อาหารทะเล','ผัก · สมุนไพร','ไข่ · เต้าหู้','อื่นๆ'];
-function shopRow2(key,name,qty,sub,ph,have){const bo=S.bought[key];return `<div class="shop ${have?'have':''} ${bo?'bought':''}"><div class="nm">${name} <span class="qty">${qty}</span></div><div class="pr"><input type="number" inputmode="decimal" min="0" data-real="${key}" value="${S.real[key]??''}" placeholder="${ph}" aria-label="ราคา ${name}" ${have?'disabled':''}></div><div class="sub">${sub}</div><div class="rowact"><button class="rb ${bo?'on':''}" data-bought="${key}" ${have?'disabled':''}>${bo?'✓ ซื้อแล้ว':'ซื้อแล้ว'}</button><button class="rb ${have?'on':''}" data-havebtn="${key}">${have?'✓ มีที่บ้าน':'มีที่บ้านแล้ว'}</button></div></div>`}
+function shopRow2(key,name,qty,sub,ph,have,meals){const bo=S.bought[key];return `<div class="shop ${have?'have':''} ${bo?'bought':''}"><div class="nm">${name} <span class="qty">${qty}</span>${meals?`<span class="qty meal">${meals}</span>`:''}</div><div class="pr"><input type="number" inputmode="decimal" min="0" data-real="${key}" value="${S.real[key]??''}" placeholder="${ph}" aria-label="ราคา ${name}" ${have?'disabled':''}></div><div class="sub">${sub}</div><div class="rowact"><button class="rb ${bo?'on':''}" data-bought="${key}" ${have?'disabled':''}>${bo?'✓ ซื้อแล้ว':'ซื้อแล้ว'}</button><button class="rb ${have?'on':''}" data-havebtn="${key}">${have?'✓ มีที่บ้าน':'มีที่บ้านแล้ว'}</button></div></div>`}
 function copyList(){const ag=shopAgg(),sn=seaNeed();let t='🛒 รายการซื้อของ ('+S.people+' คน · '+S.days+' วัน)\n';
-  SHOPG.forEach((g,gi)=>{const l=Object.keys(ag).filter(k=>shopCat(k)===gi&&!S.have[k]);if(l.length)t+='\n'+g+'\n'+l.map(k=>'☐ '+k+' '+aggQty(ag[k])).join('\n')+'\n'});
+  SHOPG.forEach((g,gi)=>{const l=Object.keys(ag).filter(k=>shopCat(k)===gi&&!S.have[k]);if(l.length)t+='\n'+g+'\n'+l.map(k=>'☐ '+k+' '+aggQty(ag[k])+' (สำหรับ '+(ag[k].c||ag[k].ms.length)+' มื้อ)').join('\n')+'\n'});
   const se=Object.keys(sn).filter(n=>panOf(n)!=='have'&&!S.have['s:'+n]);if(se.length)t+='\nเครื่องปรุง\n'+se.map(n=>'☐ '+n).join('\n')+'\n';
   const done=()=>toast('คัดลอกรายการแล้ว นำไปวางใน LINE ได้เลย');
   try{navigator.clipboard.writeText(t).then(done,()=>fb())}catch(e){fb()}
@@ -1582,7 +1585,7 @@ function renderShop(){const u=usage(),sn=seaNeed(),ag=shopAgg();
   const ks=Object.keys(ag),buy=ks.filter(t=>!S.have[t]).length;
   const groups=SHOPG.map((gn,gi)=>{const l=ks.filter(t=>shopCat(t)===gi).sort((x,y)=>ag[y].ms.length-ag[x].ms.length||x.localeCompare(y,'th'));if(!l.length)return '';
     return `<div class="sgh">${gn} <small>${l.length} อย่าง</small></div>`+l.map(t=>{const o=ag[t];const ms=o.ms.length>3?o.ms.slice(0,3).join(' · ')+' +'+(o.ms.length-3):o.ms.join(' · ');
-      return shopRow2(t,t,aggQty(o),`ใช้ใน: ${ms} · ~${baht(est2(t,o.ms.length))}${S.have[t]?' · มีแล้ว':''}`,est2(t,o.ms.length),S.have[t])}).join('')}).join('');
+      const c=o.c||o.ms.length,pe=est2(t,o.ms.length);return shopRow2(t,t,aggQty(o),`ใช้ใน: ${ms} · ~${baht(pe)} (≈${baht(Math.round(pe/c))}/มื้อ)${S.have[t]?' · มีแล้ว':''}`,pe,S.have[t],`สำหรับ ${c} มื้อ · ${S.people} คน`)}).join('')}).join('');
   $('#shoplist').innerHTML=groups||'<div class="empty">ยังไม่มีเมนูในแผน</div>';
   const got=ks.filter(t=>!S.have[t]&&S.bought[t]).length;$('#shopcount').textContent=ks.length?`วัตถุดิบทั้งหมด ${ks.length} อย่าง · ต้องซื้อ ${buy} อย่าง · ซื้อแล้ว ${got}/${buy}`:'';
   const sk=Object.keys(sn).sort((x,y)=>sn[y]-sn[x]);const need=sk.filter(n=>panOf(n)!=='have');
@@ -1666,7 +1669,7 @@ async function exportPng(){
   try{await Promise.all([document.fonts.load('600 30px Prompt'),document.fonts.load('400 24px "Noto Sans Thai"')])}catch(e){}
   const W=1080,P=56,F="'Prompt','Noto Sans Thai',sans-serif",G='#14a58a';
   const t=totals(),sl=S.slots.filter(s=>s.id!=null),ag=shopAgg(),sn=seaNeed();
-  const groups=SHOPG.map((g,gi)=>({g,l:Object.keys(ag).filter(k=>shopCat(k)===gi&&!S.have[k]).map(k=>[k,aggQty(ag[k])])}));
+  const groups=SHOPG.map((g,gi)=>({g,l:Object.keys(ag).filter(k=>shopCat(k)===gi&&!S.have[k]).map(k=>[k,aggQty(ag[k])+' · '+(ag[k].c||ag[k].ms.length)+' มื้อ'])}));
   const se=Object.keys(sn).filter(n=>panOf(n)!=='have'&&!S.have['s:'+n]);if(se.length)groups.push({g:'เครื่องปรุง',l:se.map(n=>[n,''])});
   const shopRows=groups.reduce((a,x)=>a+(x.l.length?x.l.length+1:0),0);
   const H=290+(sl.length?sl.length*118+90:120)+(shopRows?shopRows*46+110:0)+90;
