@@ -402,6 +402,8 @@ button:focus-visible,input:focus-visible,a:focus-visible{outline:3px solid rgba(
 
 .bnote{display:block;width:100%;flex:none;margin:0 0 12px;background:#fff3ec;color:#a8401f;border:1px solid #ffd9c9;border-radius:16px;padding:10px 14px;font-family:inherit;font-weight:500;font-size:13px;line-height:1.5;text-align:left;cursor:pointer}.bnote:hover{background:#ffe9de}.bnote[hidden]{display:none}
 
+.no{color:var(--muted);font-weight:600;font-variant-numeric:tabular-nums;margin-right:2px}
+
 </style>
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#14a58a">
@@ -466,7 +468,7 @@ button:focus-visible,input:focus-visible,a:focus-visible{outline:3px solid rgba(
     <button data-t="hist"><svg><use href="#n-hist"/></svg><span>ประวัติ</span><i class="bdg" id="bd-hist"></i></button>
   </nav>
   <main>
-    <button class="bnote" id="bnote" data-go="shop" hidden>ราคาอาจเกินเพราะรวมค่าเครื่องปรุงที่คุณอาจมีอยู่แล้ว กดไปหน้าซื้อของ แล้วติ๊ก “มีที่บ้านแล้ว” ออกได้เลย</button>
+    <button class="bnote" id="bnote" data-go="shop" hidden>ราคาเป็นค่าประมาณ ถ้ามีของที่บ้านแล้ว (เช่น เครื่องปรุงบางตัว) กดไปหน้าซื้อของ แล้วติ๊ก “มีที่บ้านแล้ว” ออกได้เลย</button>
     <section class="view on" id="v-set">
       <div class="card">
         <h2><i></i>ภารกิจมื้อนี้</h2>
@@ -518,7 +520,7 @@ button:focus-visible,input:focus-visible,a:focus-visible{outline:3px solid rgba(
       <div class="card" id="pansum"></div>
       <div class="jars" id="jars"></div>
       <div class="card"><h2><i style="background:var(--c5)"></i>ไอเดียจัดการเครื่องปรุง</h2>
-        <div class="quest"><i>1</i><span>กดขวดเพื่อเปลี่ยนสถานะ มี → ใกล้หมด → หมด ตัวที่ใกล้หมดและหมดจะไปรวมในรายการซื้อของอัตโนมัติ เฉพาะอย่างที่เมนูในแผนใช้</span></div>
+        <div class="quest"><i>1</i><span>กดขวดเพื่อสลับ มี / ไม่มี ตัวที่มีแล้วจะไม่คิดค่าใช้จ่าย ตัวที่ไม่มีและใช้ในแผนจะไปรวมในรายการซื้อของ</span></div>
         <div class="quest"><i>2</i><span>ก่อนออกไปซื้อ เปิดแท็บนี้เช็กครั้งเดียว ไม่ต้องรื้อตู้ครัวทีละขวด</span></div>
         <div class="quest"><i>3</i><span>เครื่องปรุงที่ใช้นานๆ ครั้ง เช่น น้ำมันงา ซื้อขวดเล็กสุด</span></div>
         <div class="quest"><i>4</i><span>ถ้าหมดแต่ไม่อยู่ในแผนสัปดาห์นี้ ปล่อยไว้ก่อน ซื้อตอนมีเมนูต้องใช้จริง</span></div>
@@ -1251,11 +1253,11 @@ const MENUS=[];
 CATS.forEach(c=>RAW[c.k].trim().split('\n').forEach(l=>{const[n,cu,ex]=l.split('|');const m={id:MENUS.length,n,cu,cat:c.k,tk:tokens(n,c,ex)};m.me=method(n);m.tg=mktags(m,c.k);m.sea=seaOf(m);const cy=ctry(m);m.co=cy[0];m.cn=cy[1];MENUS.push(m)}));
 MENUS.forEach(m=>{m.sd=/^(ส้ม)?(ตำ|ยำ)/.test(m.n)});
 const S={bought:{},people:2,days:5,meals:['เย็น'],box:[],budget:700,tab:'set',cat:'all',cu:'all',ty:'all',q:'',shown:30,wanted:[],roles:{},slots:[],real:{},have:{},
- pan:{'ซอสหอยนางรม':'low','พริกไทย':'low','น้ำมันงา':'out','พริกแกง':'out','แป้งมัน':'out'}};
+ pan:{}};
 const MEALS=['เช้า','กลางวัน','เย็น'];const BOXM='ห่อไปทำงาน';
 const MORDER=['เช้า','กลางวัน',BOXM,'เย็น'];
 const nameId=n=>MENUS.find(m=>m.n===n).id;
-function panOf(n){return S.pan[n]||'have'}
+function panOf(n){return S.pan[n]==='out'||S.pan[n]==='low'?'out':'have'}
 function sids(s){return [s.id,s.side].filter(x=>x!=null)}
 function allIds(){return S.slots.flatMap(sids)}
 function usage(){const u={};allIds().forEach(i=>MENUS[i].tk.forEach(t=>u[t]=(u[t]||0)+1));return u}
@@ -1564,7 +1566,7 @@ function mcost(m){return m.tk.reduce((s,t)=>s+(PRICE[t]||15),0)*S.people/2}
 function renderMenus(){const q=S.q.trim();const inPlan=new Set(allIds());
   const list=MENUS.filter(m=>(S.cat==='all'||m.cat===S.cat)&&(S.cu==='all'||m.cu===S.cu)&&(S.ty==='all'||m.tg.includes(S.ty))&&(!q||m.n.includes(q)||m.tk.some(t=>t.includes(q))));
   $('#cnt').textContent='พบ '+list.length+' เมนู · กดชื่อเมนูเพื่อดูสูตร';
-  $('#menus').innerHTML=list.slice(0,S.shown).map(m=>`<div class="card menu">${bubm(m)}<div class="info" data-open="${m.id}"><b>${m.n}</b>${menuTags(m)}${inPlan.has(m.id)?'<span class="tag r">ในแผน</span>':''}</div><span class="pc">~${baht(mcost(m))}</span>
+  $('#menus').innerHTML=list.slice(0,S.shown).map((m,i)=>`<div class="card menu">${bubm(m)}<div class="info" data-open="${m.id}"><b><span class="no">${i+1}.</span> ${m.n}</b>${menuTags(m)}${inPlan.has(m.id)?'<span class="tag r">ในแผน</span>':''}</div><span class="pc">~${baht(mcost(m))}</span>
     <div class="acts"><button class="ib star ${S.wanted.includes(m.id)&&S.roles[m.id]!=='side'?'on':''}" data-star="${m.id}" aria-label="อยากกินเป็นเมนูหลัก"><svg><use href="#i-star"/></svg></button><button class="ib side ${S.roles[m.id]==='side'?'on':''}" data-wantside="${m.id}" aria-label="อยากกินเป็นเครื่องเคียง">เคียง</button><button class="ib add" data-add="${m.id}" aria-label="เพิ่มลงแผน">+</button></div></div>`).join('')||'<div class="empty">ไม่พบเมนูที่ตรงเงื่อนไข</div>'
   +(list.length>S.shown?`<button class="more" data-more="1">ดูเพิ่มอีก ${Math.min(30,list.length-S.shown)} เมนู</button>`:'')}
 function renderPlan(){const T=totals(),u=T.u;
@@ -1605,13 +1607,14 @@ function renderShop(){const u=usage(),sn=seaNeed(),ag=shopAgg();
   $('#shoplist').innerHTML=groups||'<div class="empty">ยังไม่มีเมนูในแผน</div>';
   const got=ks.filter(t=>!S.have[t]&&S.bought[t]).length;$('#shopcount').textContent=ks.length?`วัตถุดิบทั้งหมด ${ks.length} อย่าง · ต้องซื้อ ${buy} อย่าง · ซื้อแล้ว ${got}/${buy}`:'';
   const sk=Object.keys(sn).sort((x,y)=>sn[y]-sn[x]);const need=sk.filter(n=>panOf(n)!=='have');
-  $('#shopsea').innerHTML=sk.map(n=>{const st=panOf(n),h=st==='have'||S.have['s:'+n];const lb=st==='out'?'หมดแล้ว':st==='low'?'ใกล้หมด':'มีที่บ้าน';
+  $('#shopsea').innerHTML=sk.map(n=>{const st=panOf(n),h=st==='have'||S.have['s:'+n];const lb=st==='out'?'ไม่มีที่บ้าน':'มีที่บ้าน';
     return shopRow2('s:'+n,n,'',`${lb} · ใช้ใน ${sn[n]} มื้อ${st==='have'?'':' · ประมาณ '+baht(SEAMAP[n].p)}`,SEAMAP[n].p,h)}).join('')||'<div class="empty">ยังไม่มีเมนูในแผน</div>';
   $('#seanote').textContent=sk.length?`เครื่องปรุงในแผน ${sk.length} อย่าง · ต้องซื้อ ${need.length} อย่าง`+(totals().a>S.budget?' · ตอนนี้เกินงบ ถ้ามีที่บ้านแล้วกด “มีที่บ้านแล้ว” ออกได้เลย':''):''}
-function renderPan(){const sn=seaNeed();const need=SEA.filter(s=>sn[s.n]&&panOf(s.n)!=='have');const cost=need.reduce((a,s)=>a+s.p,0);
-  const o=SEA.filter(s=>panOf(s.n)==='out').length,l=SEA.filter(s=>panOf(s.n)==='low').length;
-  $('#pansum').innerHTML=`<div class="row"><div><label>ต้องซื้อสำหรับแผนนี้ ${need.length} อย่าง</label><small>หมด ${o} · ใกล้หมด ${l} · ประมาณ ${baht(cost)}</small></div><button class="btn grn" data-go="shop">ไปซื้อของ</button></div>`;
-  $('#jars').innerHTML=SEA.map(s=>{const st=panOf(s.n);const nd=sn[s.n]&&st!=='have';const lb=st==='have'?'มี':st==='low'?'ใกล้หมด':'หมด';
+function renderPan(){const sn=seaNeed();const need=SEA.filter(s=>sn[s.n]&&panOf(s.n)!=='have'&&!S.have['s:'+s.n]);const cost=need.reduce((a,s)=>a+s.p,0);
+  const o=SEA.filter(s=>panOf(s.n)==='out').length;
+  $('#pansum').innerHTML=`<div class="row"><div><label>${need.length?'ต้องซื้อสำหรับแผนนี้ '+need.length+' อย่าง':'เครื่องปรุงที่ใช้ในแผน มีครบแล้ว'}</label><small>${o?'ตั้งว่าไม่มี '+o+' อย่าง · ':''}${need.length?'ประมาณ '+baht(cost):'ไม่มีค่าใช้จ่ายส่วนนี้'}</small></div><button class="btn grn" data-go="shop">ไปซื้อของ</button></div>
+  <div class="actions" style="margin-top:10px"><button class="btn ghost" data-a="pan-have">ตั้งว่ามีทุกอย่าง</button><button class="btn ghost" data-a="pan-out">ตั้งว่าไม่มีทุกอย่าง</button></div>`;
+  $('#jars').innerHTML=SEA.map(s=>{const st=panOf(s.n);const nd=sn[s.n]&&st!=='have';const lb=st==='have'?'มี':'ไม่มี';
     return `<button class="jar" data-pan="${s.n}" aria-label="${s.n} ${lb}">${nd?'<span class="need">ต้องซื้อ</span>':''}<svg style="color:${s.c}"><use href="#i-bottle"/></svg><b>${s.n}</b><span class="st ${st}">${lb}</span></button>`}).join('')}
 function renderHist(){const done=HIST.filter(h=>h.type==='done');const saved=done.reduce((a,h)=>a+(h.budget-h.spent),0);
   $('#histsum').innerHTML=`<div class="sum"><div><span>เสร็จสิ้นแล้ว</span><b>${done.length} สัปดาห์</b></div><div><span>ประหยัดสะสม</span><b style="color:${saved>=0?'var(--good)':'var(--bad)'}">${saved>=0?'':'−'}${baht(Math.abs(saved))}</b></div><div><span>ทั้งหมด</span><b>${HIST.length} รายการ</b></div></div>`;
@@ -1627,7 +1630,7 @@ function openRecipe(id){const m=MENUS[id];const r=recipe(m,S.people);
   <div class="actions"><button class="btn ${S.wanted.includes(id)&&S.roles[id]!=='side'?'':'ghost'}" data-wantrole="${id}:main" data-keep="1">★ เมนูหลัก</button><button class="btn ${S.roles[id]==='side'?'':'ghost'}" data-wantrole="${id}:side" data-keep="1">+ เครื่องเคียง</button></div>
   <button class="btn red" data-add="${id}" data-keep="1">ใส่ในแผนเป็นเมนูหลัก</button>
   ${r.src?`<div class="card srcc"><b>✓ สูตรอ้างอิง</b><div>${r.src.adapted?'ดัดแปลงจาก: ':''}${r.src.t}</div><div class="note">โดย ${r.src.by}</div><div class="note" style="word-break:break-all">${r.src.u}</div><div class="note">ปริมาณปรับตามจำนวนคนจากสูตรต้นฉบับ (${r.base} ที่)</div></div>`:`<div class="card srcc warn"><b>สูตรประมาณ</b><div class="note">ยังไม่ได้ตรวจกับแหล่งอ้างอิง ปริมาณและขั้นตอนเป็นแนวทางทั่วไป อยากได้สูตรเต็มจากเชฟหรือเว็บสูตร ให้กดดูต่อด้านล่าง</div><div class="actions" style="margin-top:8px"><a class="btn grn" target="_blank" rel="noopener" href="https://www.google.com/search?q=${encodeURIComponent('สูตร '+m.n+' วิธีทำ ปริมาณ')}">ค้นสูตรเต็มใน Google</a><a class="btn ghost" target="_blank" rel="noopener" href="https://www.youtube.com/results?search_query=${encodeURIComponent('สูตร '+m.n+' เชฟ')}">ดูคลิปเชฟทำ</a></div></div>`}<div class="card"><h2><i style="background:var(--c3)"></i>วัตถุดิบ (สำหรับ ${S.people} คน)</h2>${r.ing.map(x=>`<div class="ing"><span>${x.n}</span><span>${x.q}</span></div>`).join('')}</div>
-  <div class="card"><h2><i style="background:var(--c5)"></i>เครื่องปรุง</h2>${r.sea.map(x=>{const st=panOf(x.n);return `<div class="ing"><span>${x.n} <span class="tag ${st==='have'?'g':st==='low'?'i':'r'}" style="margin:0 0 0 4px">${st==='have'?'มี':st==='low'?'ใกล้หมด':'หมด'}</span></span><span>${x.q}</span></div>`}).join('')}</div>
+  <div class="card"><h2><i style="background:var(--c5)"></i>เครื่องปรุง</h2>${r.sea.map(x=>{const st=panOf(x.n);return `<div class="ing"><span>${x.n} <span class="tag ${st==='have'?'g':'r'}" style="margin:0 0 0 4px">${st==='have'?'มี':'ไม่มี'}</span></span><span>${x.q}</span></div>`}).join('')}</div>
   <div class="card"><h2><i style="background:var(--c1)"></i>วิธีทำ</h2><ol class="steps">${r.steps.map((s,i)=>`<li><i>${i+1}</i><span>${s}</span></li>`).join('')}</ol></div>
   <div class="list" style="gap:8px">${r.tips.map(t=>`<div class="tip"><svg><use href="#i-bulb"/></svg><span>${t}</span></div>`).join('')}</div>
   ${shared.length?`<div class="card"><h2><i style="background:var(--c4)"></i>ใช้ซ้ำกับมื้ออื่นในแผน</h2><div class="chips">${shared.map(t=>`<span class="tag g" style="font-size:12px;padding:3px 10px;margin:0">${t}</span>`).join('')}</div></div>`:''}`;
@@ -1645,11 +1648,13 @@ document.addEventListener('click',e=>{
   if(d.go){$('#sheet').classList.remove('on');go(d.go);return}
   if(d.restore){restore(+d.restore);return}
   if(d.del){HIST=HIST.filter(h=>h.id!==+d.del);if(S.draft===+d.del)S.draft=null;persist();renderHist();toast('ลบออกจากประวัติแล้ว');return}
-  if(d.pan){const o=['have','low','out'];S.pan[d.pan]=o[(o.indexOf(panOf(d.pan))+1)%3];all();return}
+  if(d.pan){if(panOf(d.pan)==='have')S.pan[d.pan]='out';else delete S.pan[d.pan];all();return}
   if(d.a){const a=d.a;
     if(a==='save'){saveCurrent();renderHist();return}
     if(a==='png'){exportPng();return}
     if(a==='fit'){fitBudget();return}
+    if(a==='pan-have'){S.pan={};all();toast('ตั้งว่ามีเครื่องปรุงทุกอย่าง ไม่คิดค่าใช้จ่าย');return}
+    if(a==='pan-out'){SEA.forEach(s=>S.pan[s.n]='out');all();toast('ตั้งว่าไม่มีเครื่องปรุงทุกอย่าง');return}
     if(a==='finish'){openFinish();return}
     if(a==='finish-ok'){finishOk();return}
     if(a==='p-')S.people=Math.max(1,S.people-1);else if(a==='p+')S.people=Math.min(10,S.people+1);
@@ -1727,7 +1732,7 @@ const SAVEKEYS=['people','days','meals','budget','wanted','roles','slots','real'
 function lsGet(k){try{return localStorage.getItem(k)}catch(e){return null}}
 function lsSet(k,v){try{localStorage.setItem(k,v)}catch(e){}}
 function saveState(){const o={};SAVEKEYS.forEach(k=>o[k]=S[k]);lsSet(SK,JSON.stringify(o))}
-function restoreState(){const s=lsGet(SK);if(!s)return false;try{const o=JSON.parse(s);if(!o||!Array.isArray(o.slots)||!Array.isArray(o.wanted))return false;SAVEKEYS.forEach(k=>{if(o[k]!==undefined)S[k]=o[k]});return true}catch(e){return false}}
+function restoreState(){const s=lsGet(SK);if(!s)return false;try{const o=JSON.parse(s);if(!o||!Array.isArray(o.slots)||!Array.isArray(o.wanted))return false;SAVEKEYS.forEach(k=>{if(o[k]!==undefined)S[k]=o[k]});const ps=Object.keys(S.pan||{});if(ps.length===5&&S.pan['ซอสหอยนางรม']==='low'&&S.pan['น้ำมันงา']==='out')S.pan={};for(const k in S.pan)if(S.pan[k]==='low')S.pan[k]='out';return true}catch(e){return false}}
 async function hashPin(p){const salt='kroo|'+p;try{const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(salt+'|v1'));return Array.from(new Uint8Array(b)).map(x=>x.toString(16).padStart(2,'0')).join('')}catch(e){let h=5381;for(const c of salt)h=((h<<5)+h+c.charCodeAt(0))>>>0;return 'f'+h}}
 const NK='kroo-name-v1';const getName=()=>lsGet(NK)||'';const setName=v=>lsSet(NK,(v||'').trim().slice(0,24));
 const LK={mode:'unlock',buf:'',first:'',fails:0,until:0,busy:false};
