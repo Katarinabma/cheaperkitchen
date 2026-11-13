@@ -398,6 +398,8 @@ button:focus-visible,input:focus-visible,a:focus-visible{outline:3px solid rgba(
 
 .qty.meal{background:#fff3ec;color:#d4552f}
 
+.card.fit{display:flex;align-items:center;justify-content:space-between;gap:12px;background:#fff3ec;border:1px solid #ffd9c9}.card.fit b{display:block;color:#d4552f}.card.fit small{color:#6b7a86;font-size:12px}.card.fit .btn{white-space:nowrap}
+
 </style>
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#14a58a">
@@ -502,6 +504,7 @@ button:focus-visible,input:focus-visible,a:focus-visible{outline:3px solid rgba(
     <section class="view" id="v-plan">
       <div class="actions"><button class="btn" data-a="save">บันทึกแผน</button><button class="btn red" data-a="finish">เสร็จสิ้น</button></div>
       <div class="actions"><button class="btn ghost" data-a="png">🖼️ ส่งออกเป็นภาพ PNG</button></div>
+      <div id="fitbar"></div>
       <div id="slots" class="list"></div>
       <button class="btn grn" data-a="shuffle">สุ่มเมนูที่เหลือใหม่</button>
       <div class="card"><h2><i style="background:var(--c3)"></i>วัตถุดิบที่ใช้ซ้ำ</h2><div class="chips" id="reuse"></div></div>
@@ -1559,7 +1562,8 @@ function renderMenus(){const q=S.q.trim();const inPlan=new Set(allIds());
   $('#menus').innerHTML=list.slice(0,S.shown).map(m=>`<div class="card menu">${bubm(m)}<div class="info" data-open="${m.id}"><b>${m.n}</b>${menuTags(m)}${inPlan.has(m.id)?'<span class="tag r">ในแผน</span>':''}</div><span class="pc">~${baht(mcost(m))}</span>
     <div class="acts"><button class="ib star ${S.wanted.includes(m.id)&&S.roles[m.id]!=='side'?'on':''}" data-star="${m.id}" aria-label="อยากกินเป็นเมนูหลัก"><svg><use href="#i-star"/></svg></button><button class="ib side ${S.roles[m.id]==='side'?'on':''}" data-wantside="${m.id}" aria-label="อยากกินเป็นเครื่องเคียง">เคียง</button><button class="ib add" data-add="${m.id}" aria-label="เพิ่มลงแผน">+</button></div></div>`).join('')||'<div class="empty">ไม่พบเมนูที่ตรงเงื่อนไข</div>'
   +(list.length>S.shown?`<button class="more" data-more="1">ดูเพิ่มอีก ${Math.min(30,list.length-S.shown)} เมนู</button>`:'')}
-function renderPlan(){const{u}=totals();
+function renderPlan(){const T=totals(),u=T.u;
+  $('#fitbar').innerHTML=T.a>S.budget?`<div class="card fit"><div><b>เกินงบ ${baht(T.a-S.budget)}</b><small>ให้แอพสลับเมนูที่ไม่ได้ล็อกหรือปักดาว เป็นเมนูที่ประหยัดกว่า</small></div><button class="btn grn" data-a="fit">จัดให้พอดีงบ</button></div>`:'';
   $('#slots').innerHTML=S.slots.map((s,i)=>{
     if(s.id==null)return `<div class="card empty">ยังไม่มีเมนู</div>`;const m=MENUS[s.id];const sh=m.tk.filter(t=>u[t]>1);const isBox=s.meal===BOXM;
     return `<div class="card menu ${isBox?'boxslot':''} ${s.locked?'locked':''}">${bubm(m)}<div class="info" data-open="${m.id}"><div class="day">${DAYS[s.day]} · ${s.meal}</div><b>${m.n}</b>
@@ -1569,6 +1573,13 @@ function renderPlan(){const{u}=totals();
   $('#reuse').innerHTML=ru.length?ru.map(([t,n])=>`<span class="tag g" style="font-size:12px;padding:3px 10px">${t} × ${n} มื้อ</span>`).join(''):'<span class="note">ยังไม่มีวัตถุดิบที่ใช้ซ้ำ</span>';
   const c=cand().filter(x=>x.sh.length).slice(0,8);
   $('#sugg').innerHTML=c.map(x=>`<div class="sg"><b>${x.m.n}</b><span>ใช้ของเดิม: ${x.sh.slice(0,3).join(' · ')}</span><span>ซื้อเพิ่ม ~${baht(x.nw)}</span><button data-add="${x.m.id}">ใส่ในแผน</button></div>`).join('')}
+function fitBudget(){let g=0,n=0;
+  while(totals().a>S.budget&&g++<14){const cur=totals().a;let best=null;const inPlan=new Set(allIds());
+    S.slots.forEach((s,i)=>{if(s.kind!=='auto'||s.locked||s.id==null)return;const old=s.id;
+      MENUS.filter(m=>!inPlan.has(m.id)&&(s.meal!==BOXM||m.tg.includes('box'))).sort((a,b)=>mcost(a)-mcost(b)).slice(0,25).forEach(m=>{s.id=m.id;const a=totals().a;if(a<cur&&(!best||a<best.a))best={i,id:m.id,a}});s.id=old});
+    if(!best)break;S.slots[best.i].id=best.id;n++}
+  all();const a=totals().a;
+  toast(a<=S.budget?`จัดให้พอดีงบแล้ว เปลี่ยน ${n} มื้อ เหลือ ${baht(S.budget-a)}`:n?`ลดได้เหลือ ${baht(a)} แต่ยังเกินงบ ลองเพิ่มงบ หรือเอาเมนูอยากกินออก`:'ไม่มีมื้อที่สลับได้ ลองปลดล็อกมื้อ เพิ่มงบ หรือลดจำนวนคน')}
 function sumHtml(){const t=totals();return `<div><span>ประมาณการ</span><b>${baht(t.e)}</b></div><div><span>จ่ายจริง</span><b>${baht(t.a)}</b></div><div><span>${t.a>S.budget?'เกินงบ':'เหลือ'}</span><b style="color:${t.a>S.budget?'var(--bad)':'var(--good)'}">${baht(Math.abs(S.budget-t.a))}</b></div>`}
 function shopRow(key,name,sub,placeholder,have){return `<div class="shop ${have?'have':''}"><div class="nm">${name}</div><div class="pr"><input type="number" inputmode="decimal" min="0" data-real="${key}" value="${S.real[key]??''}" placeholder="${placeholder}" aria-label="ราคา ${name}" ${have?'disabled':''}><input type="checkbox" data-have="${key}" ${have?'checked':''} aria-label="มีที่บ้านแล้ว ${name}"></div><div class="sub">${sub}</div></div>`}
 function shopCat(n){if(/พริกแกง|กะปิ|ข้าวคั่ว|โป๊ยกั๊ก|อบเชย|พริกไทย|พริกป่น|น้ำพริกเผา|มะขามเปียก|น้ำตาล|ปลาร้า/.test(n))return 3;if(/ไข่|เต้าหู้/.test(n))return 2;if(/หมู|ไก่|เนื้อ|ปลา(?!ร้า)|กุ้ง|หมึก|ปู|หอย|แซลมอน|ทูน่า|ไส้กรอก|เบคอน|แฮม/.test(n))return 0;if(/ไข่|เต้าหู้/.test(n))return 2;if(/ผัก|ใบ|ต้น|หอม|กระเทียม|พริก|ขิง|ข่า|ตะไคร้|มะนาว|มะเขือ|มะละกอ|ถั่ว|เห็ด|แตง|แครอท|กะหล่ำ|คะน้า|ฟัก|หน่อไม้|สะระแหน่|ชะอม|โหระพา|กะเพรา|โขม|ตำลึง|บร็อค|แพร์|ไชเท้า|มันฝรั่ง|กวางตุ้ง/.test(n))return 1;return 3}
@@ -1633,6 +1644,7 @@ document.addEventListener('click',e=>{
   if(d.a){const a=d.a;
     if(a==='save'){saveCurrent();renderHist();return}
     if(a==='png'){exportPng();return}
+    if(a==='fit'){fitBudget();return}
     if(a==='finish'){openFinish();return}
     if(a==='finish-ok'){finishOk();return}
     if(a==='p-')S.people=Math.max(1,S.people-1);else if(a==='p+')S.people=Math.min(10,S.people+1);
