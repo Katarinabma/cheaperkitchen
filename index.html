@@ -400,6 +400,8 @@ button:focus-visible,input:focus-visible,a:focus-visible{outline:3px solid rgba(
 
 .card.fit{display:flex;align-items:center;justify-content:space-between;gap:12px;background:#fff3ec;border:1px solid #ffd9c9}.card.fit b{display:block;color:#d4552f}.card.fit small{color:#6b7a86;font-size:12px}.card.fit .btn{white-space:nowrap}
 
+.bnote{display:block;width:100%;flex:none;margin:0 0 12px;background:#fff3ec;color:#a8401f;border:1px solid #ffd9c9;border-radius:16px;padding:10px 14px;font-family:inherit;font-weight:500;font-size:13px;line-height:1.5;text-align:left;cursor:pointer}.bnote:hover{background:#ffe9de}.bnote[hidden]{display:none}
+
 </style>
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#14a58a">
@@ -464,6 +466,7 @@ button:focus-visible,input:focus-visible,a:focus-visible{outline:3px solid rgba(
     <button data-t="hist"><svg><use href="#n-hist"/></svg><span>ประวัติ</span><i class="bdg" id="bd-hist"></i></button>
   </nav>
   <main>
+    <button class="bnote" id="bnote" data-go="shop" hidden>ราคาอาจเกินเพราะรวมค่าเครื่องปรุงที่คุณอาจมีอยู่แล้ว กดไปหน้าซื้อของ แล้วติ๊ก “มีที่บ้านแล้ว” ออกได้เลย</button>
     <section class="view on" id="v-set">
       <div class="card">
         <h2><i></i>ภารกิจมื้อนี้</h2>
@@ -1542,6 +1545,7 @@ function head(){const{a}=totals();const pct=Math.min(a/S.budget,1);const f=$('#b
   f.style.background=a>S.budget?'var(--bad)':pct>.85?'var(--c2)':'var(--good)';
   $('#bl').textContent=a>S.budget?'เกินงบ '+baht(a-S.budget):'เหลือ '+baht(S.budget-a);
   $('#bs').textContent='ใช้ประมาณ '+baht(a)+' จาก '+baht(S.budget);
+  $('#bnote').hidden=!(a>S.budget);
   $('#sub').textContent=S.people+' คน · '+S.days+' วัน · '+S.slots.length+' มื้อ';
   $('#stars').innerHTML=starsHtml(curScore());
   const bd=(id,v)=>{const e=$('#bd-'+id);if(e)e.textContent=v};
@@ -1603,7 +1607,7 @@ function renderShop(){const u=usage(),sn=seaNeed(),ag=shopAgg();
   const sk=Object.keys(sn).sort((x,y)=>sn[y]-sn[x]);const need=sk.filter(n=>panOf(n)!=='have');
   $('#shopsea').innerHTML=sk.map(n=>{const st=panOf(n),h=st==='have'||S.have['s:'+n];const lb=st==='out'?'หมดแล้ว':st==='low'?'ใกล้หมด':'มีที่บ้าน';
     return shopRow2('s:'+n,n,'',`${lb} · ใช้ใน ${sn[n]} มื้อ${st==='have'?'':' · ประมาณ '+baht(SEAMAP[n].p)}`,SEAMAP[n].p,h)}).join('')||'<div class="empty">ยังไม่มีเมนูในแผน</div>';
-  $('#seanote').textContent=sk.length?`เครื่องปรุงในแผน ${sk.length} อย่าง · ต้องซื้อ ${need.length} อย่าง`:''}
+  $('#seanote').textContent=sk.length?`เครื่องปรุงในแผน ${sk.length} อย่าง · ต้องซื้อ ${need.length} อย่าง`+(totals().a>S.budget?' · ตอนนี้เกินงบ ถ้ามีที่บ้านแล้วกด “มีที่บ้านแล้ว” ออกได้เลย':''):''}
 function renderPan(){const sn=seaNeed();const need=SEA.filter(s=>sn[s.n]&&panOf(s.n)!=='have');const cost=need.reduce((a,s)=>a+s.p,0);
   const o=SEA.filter(s=>panOf(s.n)==='out').length,l=SEA.filter(s=>panOf(s.n)==='low').length;
   $('#pansum').innerHTML=`<div class="row"><div><label>ต้องซื้อสำหรับแผนนี้ ${need.length} อย่าง</label><small>หมด ${o} · ใกล้หมด ${l} · ประมาณ ${baht(cost)}</small></div><button class="btn grn" data-go="shop">ไปซื้อของ</button></div>`;
